@@ -18,13 +18,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     this.state = { hasError: false, error: null, errorInfo: null }
   }
 
-  static getDerivedStateFromError(): ErrorBoundaryState {
-    return { hasError: true, error: null, errorInfo: null }
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    return { hasError: true, error }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     if (import.meta.env.DEV) {
-      this.setState({ error, errorInfo })
+      this.setState({ errorInfo })
     }
     console.error('[L2E LAB] Render error:', error, errorInfo)
   }
@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
 
       return (
-        <div className="error-boundary">
+        <div className="error-boundary" role="alert" aria-live="assertive">
           <div className="error-boundary__content">
             <span className="error-boundary__icon"><AlertTriangle size={32} /></span>
             <h1>Something went wrong.</h1>
@@ -51,13 +51,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               <button
                 className="pl-button pl-button--primary"
                 onClick={() => {
-                  this.resetError()
                   window.location.reload()
                 }}
               >
                 <RotateCcw size={16} /> Reload and reset
               </button>
               <button
+	      	type="button"
                 className="pl-button pl-button--secondary"
                 onClick={this.resetError}
               >
