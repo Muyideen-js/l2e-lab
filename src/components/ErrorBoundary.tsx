@@ -49,6 +49,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </p>
             <div className="error-boundary__actions">
               <button
+                type="button"
                 className="pl-button pl-button--primary"
                 onClick={() => {
                   window.location.reload()
