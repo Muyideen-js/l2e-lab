@@ -5,7 +5,9 @@ dist/
 .DS_Store
 .qa-*.png
 .chrome-qa*/
-.env.local
-.env.*.local
+.env
+.env.*
+.env copy
+!.env.example
 .vercel/
 .firebase/

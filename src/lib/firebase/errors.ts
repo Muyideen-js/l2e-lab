@@ -3,7 +3,6 @@ import { FirebaseError } from 'firebase/app'
 export type FirebaseClientErrorCode =
   | 'not-in-browser'
   | 'not-configured'
-  | 'anonymous-auth-disabled'
   | 'permission-denied'
   | 'network-error'
   | 'service-unavailable'
@@ -32,13 +31,6 @@ export function toFirebaseClientError(error: unknown): FirebaseClientError {
   if (error instanceof FirebaseClientError) return error
 
   if (error instanceof FirebaseError) {
-    if (error.code === 'auth/operation-not-allowed') {
-      return new FirebaseClientError(
-        'anonymous-auth-disabled',
-        'Anonymous sign-in is not enabled for L2E LAB.',
-        { cause: error },
-      )
-    }
     if (error.code === 'permission-denied' || error.code === 'firestore/permission-denied') {
       return new FirebaseClientError(
         'permission-denied',

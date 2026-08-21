@@ -28,7 +28,7 @@ import { ProjectArtwork, PublicProjectCard, TrackIcon, trackClass, trackName } f
 export function PublicProjectDetailPage() {
   const { slug } = useParams()
   const project = slug ? getProjectBySlug(slug) : undefined
-  const { isProjectFinished } = usePublicProgress()
+  const { authSession, isProjectFinished } = usePublicProgress()
   const [showHints, setShowHints] = useState(false)
 
   if (!project) {
@@ -43,7 +43,7 @@ export function PublicProjectDetailPage() {
   }
 
   const finished = isProjectFinished(project.id)
-  const inProgress = !finished && hasProjectDraft(project.id)
+  const inProgress = !finished && hasProjectDraft(authSession, project.id)
   const available = isTrackAvailable(project.track)
   const related = publicProjects.filter((item) => item.track === project.track && item.id !== project.id).slice(0, 3)
 
@@ -78,7 +78,7 @@ export function PublicProjectDetailPage() {
               ) : (
                 <span className="pl-button pl-button--locked pl-button--large" aria-disabled="true"><LockKeyhole size={18} /> Workspace coming soon</span>
               )}
-              <span><LockKeyhole size={14} /> {available ? 'Choose a username once. No password.' : 'Python is the only active workspace for now.'}</span>
+              <span><LockKeyhole size={14} /> {available ? 'Sign in once, then build across devices.' : 'Python is the only active workspace for now.'}</span>
             </div>
           </div>
           <div className="pl-project-detail__visual">
@@ -136,7 +136,7 @@ export function PublicProjectDetailPage() {
             <div className="pl-start-card">
               <span className="pl-start-card__icon"><Sparkles size={21} /></span>
               <h2>{!available ? `${trackName[project.track]} builds are coming soon.` : finished ? 'You finished this one!' : inProgress ? 'Your code is waiting.' : 'Ready to make it real?'}</h2>
-              <p>{!available ? 'This brief is available to explore, but its CodeSandbox workspace is locked while the Python experience is completed.' : finished ? 'Your Finished tag is saved on this device. Reopen the workspace whenever you want to improve it.' : inProgress ? 'Continue from the files saved in this browser.' : 'Your starter files, live runner, checks, and hints are already set up.'}</p>
+              <p>{!available ? 'This brief is available to explore, but its CodeSandbox workspace is locked while the Python experience is completed.' : finished ? 'Your Finished tag is synced to your learner account. Reopen the workspace whenever you want to improve it.' : inProgress ? 'Continue from the files saved in this browser.' : 'Your starter files, live runner, checks, and hints are already set up.'}</p>
               {available ? (
                 <Link className="pl-button pl-button--primary" to={`/projects/${project.slug}/build`}>
                   {finished ? 'Open workspace' : inProgress ? 'Continue project' : 'Start project'} <ArrowRight size={16} />
@@ -144,7 +144,7 @@ export function PublicProjectDetailPage() {
               ) : (
                 <span className="pl-button pl-button--locked" aria-disabled="true"><LockKeyhole size={15} /> Workspace locked</span>
               )}
-              <ul><li><Check size={13} /> One local username</li><li><Check size={13} /> Python runs in your browser</li><li><Check size={13} /> Work saved on this device</li></ul>
+              <ul><li><Check size={13} /> L2E username account</li><li><Check size={13} /> Python runs in your browser</li><li><Check size={13} /> Completion syncs in real time</li></ul>
             </div>
             <div className="pl-detail-note"><ShieldCheck size={18} /><div><b>Your code stays yours</b><p>Drafts are stored locally in this browser. Publishing creates a local showcase card until the school backend is connected.</p></div></div>
           </aside>

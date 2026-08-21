@@ -18,7 +18,6 @@ import { Button, Modal } from '../../components/UI'
 import { getProjectBySlug, learningTrackMeta } from '../../public/data'
 import { TrackIcon, trackClass } from '../../public/PublicCards'
 import { usePublicProgress } from '../../public/PublicProgressContext'
-import { useAchievementNotifications } from '../../hooks/useAchievementNotifications'
 import { PythonWorkbench } from '../../public/runtime/PythonWorkbench'
 import { clearProjectDraft, getProjectDraft, saveProjectDraft } from '../../public/runtime/storage'
 import type { StarterFile } from '../../public/types'
@@ -36,29 +35,28 @@ export function ProjectBuildPage() {
   const navigate = useNavigate()
   const project = useMemo(() => getProjectBySlug(slug), [slug])
   const progress = usePublicProgress()
-  useAchievementNotifications()
-  const [files, setFiles] = useState<StarterFile[]>(() => project ? cloneFiles(getProjectDraft(project.id)?.files ?? project.starterFiles) : [])
+  const draftOwner = progress.authSession
+  const [files, setFiles] = useState<StarterFile[]>(() => project ? cloneFiles(getProjectDraft(draftOwner, project.id)?.files ?? project.starterFiles) : [])
   const [results, setResults] = useState<RequirementResult[]>([])
   const [publishOpen, setPublishOpen] = useState(false)
   const [showHints, setShowHints] = useState(false)
   const [justCompleted, setJustCompleted] = useState(false)
   const [submissionTitle, setSubmissionTitle] = useState(project?.title ?? '')
   const [submissionDescription, setSubmissionDescription] = useState('')
-  const [author, setAuthor] = useState(progress.displayName || 'Guest builder')
 
   useEffect(() => {
     if (!project) return
     document.title = `${project.title} — Build in L2E LAB`
-    setFiles(cloneFiles(getProjectDraft(project.id)?.files ?? project.starterFiles))
+    setFiles(cloneFiles(getProjectDraft(draftOwner, project.id)?.files ?? project.starterFiles))
     setSubmissionTitle(project.title)
     setResults([])
-  }, [project])
+  }, [draftOwner, project])
 
   useEffect(() => {
-    if (!project || files.length === 0) return
-    const timeout = window.setTimeout(() => saveProjectDraft(project.id, files), 450)
+    if (!draftOwner || !project || files.length === 0) return
+    const timeout = window.setTimeout(() => saveProjectDraft(draftOwner, project.id, files), 450)
     return () => window.clearTimeout(timeout)
-  }, [files, project])
+  }, [draftOwner, files, project])
 
   if (!project || project.track !== 'python') return <Navigate to={project ? `/projects/${project.slug}` : '/projects'} replace />
 
@@ -84,7 +82,7 @@ export function ProjectBuildPage() {
 
   function resetStarter() {
     if (!window.confirm('Reset this project to the starter code? Your current draft will be replaced.')) return
-    clearProjectDraft(activeProject.id)
+    if (draftOwner) clearProjectDraft(draftOwner, activeProject.id)
     setFiles(cloneFiles(activeProject.starterFiles))
     setResults([])
   }
@@ -95,9 +93,8 @@ export function ProjectBuildPage() {
       files,
       title: submissionTitle.trim() || activeProject.title,
       description: submissionDescription.trim() || `My take on ${activeProject.title}, built in L2E LAB.`,
-      author: author.trim() || 'Guest builder',
+      author: progress.displayName,
     })
-    progress.setDisplayName(author.trim() || 'Guest builder')
     setPublishOpen(false)
     navigate(`/community?published=${item.id}`)
   }
@@ -197,10 +194,10 @@ export function ProjectBuildPage() {
           <span className={allPassed ? 'is-ready' : ''}>{allPassed ? <CheckCircle2 size={20} /> : <Sparkles size={20} />}</span>
           <div><strong>{allPassed ? 'All checks passed — lovely work.' : 'You can share work in progress too.'}</strong><p>Sharing adds a copy to the community showcase saved on this device. Your Finished tag comes from passing the checks.</p></div>
         </div>
-        <label className="runtime-field"><span>Your display name</span><input value={author} maxLength={40} onChange={(event) => setAuthor(event.target.value)} placeholder="Guest builder" /></label>
+        <label className="runtime-field"><span>Publishing as</span><input value={`@${progress.displayName}`} readOnly aria-readonly="true" /></label>
         <label className="runtime-field"><span>Build title</span><input value={submissionTitle} maxLength={70} onChange={(event) => setSubmissionTitle(event.target.value)} /></label>
         <label className="runtime-field"><span>Tell people what you made <small>optional</small></span><textarea value={submissionDescription} maxLength={180} onChange={(event) => setSubmissionDescription(event.target.value)} placeholder="What did you learn or add?" rows={3} /></label>
-        <p className="publish-privacy">No password is required. Community publishing is still stored only in this browser for now.</p>
+        <p className="publish-privacy">Your account owns the Finished tag. Community publishing itself is still stored only in this browser for now.</p>
       </Modal>
     </div>
   )

@@ -1,10 +1,22 @@
 export { firebaseConfig, isFirebaseConfigured } from './config'
 export {
-  bootstrapAnonymousLearner,
   getFirebaseClient,
   type FirebaseClient,
-  type LearnerSession,
 } from './client'
+export {
+  LearnerAuthError,
+  getCurrentLearnerSession,
+  normalizeLearnerUsername,
+  observeLearnerAuth,
+  signInLearner,
+  signOutLearner,
+  signUpLearner,
+  toLearnerAuthError,
+  type LearnerAuthErrorCode,
+  type LearnerAuthSession,
+  type LearnerAuthState,
+  type LearnerAuthUnsubscribe,
+} from './learnerAuth'
 export {
   FirebaseClientError,
   toFirebaseClientError,
@@ -13,11 +25,13 @@ export {
 export {
   LEARNERS_COLLECTION,
   LEARNER_SCHEMA_VERSION,
+  subscribeToOwnLearnerProgress,
   syncLearnerProgress,
   upsertLearner,
   type HydratedLearnerProgress,
   type LearnerDailyProgress,
   type LearnerDocument,
+  type LearnerProgressSnapshot,
   type LearnerSyncInput,
   type LearnerSyncResult,
   type LearnerTrack,
