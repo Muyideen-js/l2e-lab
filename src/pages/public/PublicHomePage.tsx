@@ -52,6 +52,7 @@ function LaunchCard({ className, eyebrow, title, description, meta, action, to, 
 
 export function PublicHomePage() {
   const {
+    authSession,
     dailyProgress,
     finishedProjectIds,
     showcaseItems,
@@ -137,7 +138,7 @@ export function PublicHomePage() {
             <div className="hub-project-grid">
               {projects.map((project) => {
                 const finished = isProjectFinished(project.id)
-                const inProgress = !finished && hasProjectDraft(project.id)
+                const inProgress = !finished && hasProjectDraft(authSession, project.id)
                 const action = finished ? 'Build again' : inProgress ? 'Continue build' : 'Start project'
                 const available = isTrackAvailable(project.track)
 

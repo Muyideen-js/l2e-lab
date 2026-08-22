@@ -2,10 +2,14 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isAnonymousOwner(uid) {
+    function isPasswordOwner(uid) {
       return request.auth != null
         && request.auth.uid == uid
-        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+        && request.auth.token.firebase.sign_in_provider == 'password'
+        && request.auth.token.email is string
+        && request.auth.token.email.matches(
+          '^l2e-[a-z0-9][a-z0-9-]{1,22}[a-z0-9]@learners[.]l2e-lab[.]invalid$'
+        );
     }
 
     function hasLearnerFields(data) {
@@ -67,6 +71,9 @@ service cloud.firestore {
         && data.displayNameLower is string
         && data.displayNameLower.size() >= 1
         && data.displayNameLower.size() <= 40
+        && data.displayName == data.displayNameLower
+        && request.auth.token.email
+          == 'l2e-' + data.displayNameLower + '@learners.l2e-lab.invalid'
         && data.schemaVersion is int
         && data.schemaVersion == 1
         && data.firstSeenAt is timestamp
@@ -77,16 +84,17 @@ service cloud.firestore {
     }
 
     match /learners/{uid} {
-      // A learner can load their own progress document, never the collection.
-      allow get: if isAnonymousOwner(uid);
+      // Password-authenticated learners can access only their own record.
+      // The dormant admin client has no collection or document permission.
+      allow get: if isPasswordOwner(uid);
       allow list: if false;
 
-      allow create: if isAnonymousOwner(uid)
+      allow create: if isPasswordOwner(uid)
         && validLearner(request.resource.data, uid)
         && request.resource.data.firstSeenAt == request.time
         && request.resource.data.lastSeenAt == request.time;
 
-      allow update: if isAnonymousOwner(uid)
+      allow update: if isPasswordOwner(uid)
         && validLearner(request.resource.data, uid)
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.schemaVersion == resource.data.schemaVersion

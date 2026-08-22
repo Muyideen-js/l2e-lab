@@ -1,50 +1,54 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   ArrowRight,
   BookOpen,
   Check,
   CheckCircle2,
   Clock3,
-  Edit3,
   Flame,
   FolderClock,
   Heart,
   Laptop2,
+  LogOut,
   Rocket,
-  Save,
   Sparkles,
   Trophy,
   UploadCloud,
-  X,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { publicProjects } from '../../public/data'
 import { usePublicProgress } from '../../public/PublicProgressContext'
-import { useAchievementNotifications } from '../../hooks/useAchievementNotifications'
 import { hasProjectDraft } from '../../public/runtime/storage'
 import { PublicProjectCard, TrackIcon, trackClass, trackName } from '../../public/PublicCards'
 import type { LearningTrack } from '../../public/types'
 
 const tracks: LearningTrack[] = ['python', 'react', 'javascript']
 
+function firstIncompleteDay(completedDays: readonly number[]): number {
+  const completed = new Set(completedDays)
+  for (let day = 1; day <= 100; day += 1) {
+    if (!completed.has(day)) return day
+  }
+  return 100
+}
+
 export function MyLearningPage() {
-  const { displayName, setDisplayName, finishedProjectIds, dailyProgress, submissions, likedShowcaseIds } = usePublicProgress()
-  useAchievementNotifications()
-  const [editingName, setEditingName] = useState(false)
-  const [nameDraft, setNameDraft] = useState(displayName)
+  const {
+    displayName,
+    authSession,
+    syncStatus,
+    signOut,
+    finishedProjectIds,
+    dailyProgress,
+    submissions,
+    likedShowcaseIds,
+  } = usePublicProgress()
 
   const finishedProjects = useMemo(() => publicProjects.filter((project) => finishedProjectIds.includes(project.id)), [finishedProjectIds])
-  const inProgressProjects = useMemo(() => publicProjects.filter((project) => !finishedProjectIds.includes(project.id) && hasProjectDraft(project.id)), [finishedProjectIds])
+  const inProgressProjects = useMemo(() => publicProjects.filter((project) => !finishedProjectIds.includes(project.id) && hasProjectDraft(authSession, project.id)), [authSession, finishedProjectIds])
   const completedChallenges = tracks.reduce((total, track) => total + dailyProgress[track].length, 0)
   const projectPercent = Math.round((finishedProjects.length / publicProjects.length) * 100)
   const totalActivity = finishedProjects.length + inProgressProjects.length + completedChallenges + submissions.length
-
-  function saveName() {
-    const nextName = nameDraft.trim()
-    if (nextName) setDisplayName(nextName)
-    else setNameDraft(displayName)
-    setEditingName(false)
-  }
 
   return (
     <div className="pl-learning">
@@ -52,9 +56,12 @@ export function MyLearningPage() {
         <div className="pl-container pl-learning-hero__inner">
           <div className="pl-learning-profile">
             <span className="pl-learning-profile__avatar">{displayName.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'LB'}</span>
-            <div><span className="pl-kicker"><Sparkles size={14} /> My learning · this device</span>{editingName ? <form onSubmit={(event) => { event.preventDefault(); saveName() }}><input value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} autoFocus aria-label="Display name" /><button type="submit" aria-label="Save display name"><Save size={16} /></button><button type="button" onClick={() => { setNameDraft(displayName); setEditingName(false) }} aria-label="Cancel"><X size={16} /></button></form> : <h1>Keep going, <em>{displayName}.</em><button type="button" onClick={() => setEditingName(true)} aria-label="Edit display name"><Edit3 size={15} /></button></h1>}<p>Your projects, daily wins, and local showcase builds are all together here.</p></div>
+            <div><span className="pl-kicker"><Sparkles size={14} /> Signed in as @{authSession?.username}</span><h1>Keep going, <em>{displayName}.</em></h1><p>Your projects, daily wins, and local showcase builds are all together here.</p></div>
           </div>
-          <div className="pl-learning-hero__device"><Laptop2 size={17} /><div><b>Saved on this device</b><small>Completion progress syncs when online</small></div></div>
+          <div className="pl-learning-hero__account">
+            <div className="pl-learning-hero__device"><Laptop2 size={17} /><div><b>{syncStatus === 'synced' ? 'Progress synced' : syncStatus === 'syncing' ? 'Syncing progress' : syncStatus === 'offline' ? 'Saved offline' : 'Account connected'}</b><small>Your completed work follows this account</small></div></div>
+            <button type="button" className="pl-learning-signout" onClick={() => { void signOut() }}><LogOut size={15} /> Sign out</button>
+          </div>
         </div>
       </section>
 
@@ -87,7 +94,7 @@ export function MyLearningPage() {
                 <header><div><span><Flame size={18} /></span><div><small>Daily 100</small><h2>Your challenge paths</h2></div></div><Link to="/daily">Open Daily 100 <ArrowRight size={15} /></Link></header>
                 <div>{tracks.map((track) => {
                   const count = dailyProgress[track].length
-                  const nextDay = Math.min(100, count + 1)
+                  const nextDay = firstIncompleteDay(dailyProgress[track])
                   const locked = track !== 'python'
                   return <div className={`pl-daily-track-row ${locked ? 'is-locked' : ''}`} key={track}>
                     <span className={`pl-track ${trackClass[track]}`}><TrackIcon track={track} /> {trackName[track]}</span>
@@ -113,7 +120,7 @@ export function MyLearningPage() {
           </>
         )}
 
-        <div className="pl-learning-tip"><span><BookOpen size={19} /></span><div><b>Your learning stays local-first.</b><p>Your code drafts, showcase builds, and likes stay in this browser. Your username and completion progress sync to L2E LAB when online, but anonymous access does not move to another device.</p></div><span><Check size={13} /> Local-first</span></div>
+        <div className="pl-learning-tip"><span><BookOpen size={19} /></span><div><b>Your account keeps your progress moving.</b><p>Completed challenges and projects sync to your L2E LAB account in real time. Code drafts, showcase builds, and likes still stay on this browser for now.</p></div><span><Check size={13} /> Account sync</span></div>
       </section>
     </div>
   )

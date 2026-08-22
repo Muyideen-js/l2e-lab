@@ -67,12 +67,12 @@ export default defineConfig({
       manifest: {
         name: 'L2E LAB — Learn2Earn Learning Workspace',
         short_name: 'L2E LAB',
-        description: 'A public, password-free browser-based learning workspace for Python programming.',
+        description: 'A username-based learning workspace for Python practice, daily challenges, and real projects.',
         start_url: '/',
         display: 'standalone',
         background_color: '#f5f8fc',
         theme_color: '#0866e8',
-        orientation: 'portrait',
+        orientation: 'any',
         icons: [
           {
             src: '/learn2earn-logo.svg',
@@ -82,7 +82,7 @@ export default defineConfig({
           },
         ],
       },
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      includeAssets: ['learn2earn-logo.svg', 'learn2earn-white.png', 'dm-sans.woff2'],
       workbox: {
         maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
         runtimeCaching: [

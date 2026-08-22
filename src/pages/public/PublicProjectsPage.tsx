@@ -35,7 +35,7 @@ export function PublicProjectsPage() {
   const [difficulty, setDifficulty] = useState<DifficultyFilter>('all')
   const initialStatus = searchParams.get('status')
   const [status, setStatus] = useState<StatusFilter>(initialStatus === 'finished' || initialStatus === 'unfinished' ? initialStatus : 'all')
-  const { finishedProjectIds, isProjectFinished } = usePublicProgress()
+  const { authSession, finishedProjectIds, isProjectFinished } = usePublicProgress()
   const availableProjectCount = publicProjects.filter((project) => isTrackAvailable(project.track)).length
 
   const filteredProjects = useMemo(() => {
@@ -115,7 +115,7 @@ export function PublicProjectsPage() {
 
         {filteredProjects.length > 0 ? (
           <div className="pl-project-grid pl-project-grid--library">
-            {filteredProjects.map((project) => <PublicProjectCard project={project} finished={isProjectFinished(project.id)} inProgress={!isProjectFinished(project.id) && hasProjectDraft(project.id)} key={project.id} />)}
+            {filteredProjects.map((project) => <PublicProjectCard project={project} finished={isProjectFinished(project.id)} inProgress={!isProjectFinished(project.id) && hasProjectDraft(authSession, project.id)} key={project.id} />)}
           </div>
         ) : (
           <div className="pl-empty-state">

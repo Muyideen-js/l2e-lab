@@ -4,7 +4,6 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { getDailyChallenge, learningTrackMeta } from '../../public/data'
 import { TrackIcon, trackClass } from '../../public/PublicCards'
 import { usePublicProgress } from '../../public/PublicProgressContext'
-import { useAchievementNotifications } from '../../hooks/useAchievementNotifications'
 import { PythonWorkbench } from '../../public/runtime/PythonWorkbench'
 import { clearDailyDraft, getDailyDraft, saveDailyDraft } from '../../public/runtime/storage'
 import type { StarterFile } from '../../public/types'
@@ -23,8 +22,8 @@ export function DailyChallengeWorkspacePage() {
   const day = Number(params.day)
   const challenge = useMemo(() => track && Number.isInteger(day) ? getDailyChallenge(track, day) : undefined, [day, track])
   const progress = usePublicProgress()
-  useAchievementNotifications()
-  const [files, setFiles] = useState<StarterFile[]>(() => challenge ? cloneFiles(getDailyDraft(challenge.track, challenge.day)?.files ?? challenge.starterFiles) : [])
+  const draftOwner = progress.authSession
+  const [files, setFiles] = useState<StarterFile[]>(() => challenge ? cloneFiles(getDailyDraft(draftOwner, challenge.track, challenge.day)?.files ?? challenge.starterFiles) : [])
   const [results, setResults] = useState<ChallengeResult[]>([])
   const [hintsOpen, setHintsOpen] = useState(false)
   const [justFinished, setJustFinished] = useState(false)
@@ -32,16 +31,16 @@ export function DailyChallengeWorkspacePage() {
   useEffect(() => {
     if (!challenge) return
     document.title = `Day ${challenge.day}: ${challenge.title} — L2E LAB`
-    setFiles(cloneFiles(getDailyDraft(challenge.track, challenge.day)?.files ?? challenge.starterFiles))
+    setFiles(cloneFiles(getDailyDraft(draftOwner, challenge.track, challenge.day)?.files ?? challenge.starterFiles))
     setResults([])
     setJustFinished(false)
-  }, [challenge])
+  }, [challenge, draftOwner])
 
   useEffect(() => {
-    if (!challenge || files.length === 0) return
-    const timeout = window.setTimeout(() => saveDailyDraft(challenge.track, challenge.day, files), 450)
+    if (!challenge || !draftOwner || files.length === 0) return
+    const timeout = window.setTimeout(() => saveDailyDraft(draftOwner, challenge.track, challenge.day, files), 450)
     return () => window.clearTimeout(timeout)
-  }, [challenge, files])
+  }, [challenge, draftOwner, files])
 
   if (!track || !challenge) return <Navigate to="/daily" replace />
 
@@ -72,7 +71,7 @@ export function DailyChallengeWorkspacePage() {
 
   function resetChallenge() {
     if (!window.confirm('Reset this day to its starter code? Your current draft will be replaced.')) return
-    clearDailyDraft(activeTrack, day)
+    if (draftOwner) clearDailyDraft(draftOwner, activeTrack, day)
     setFiles(cloneFiles(activeChallenge.starterFiles))
     setResults([])
   }
@@ -97,7 +96,7 @@ export function DailyChallengeWorkspacePage() {
 
       {justFinished && (
         <div className="daily-celebration">
-          <div><span><Sparkles size={18} /></span><p><strong>Day {day} complete!</strong> Your progress is saved on this device.</p>{nextDay && <Link to={`/daily/${track}/${nextDay}`}>Go to day {nextDay} <ArrowRight size={14} /></Link>}<button onClick={() => setJustFinished(false)} aria-label="Dismiss"><X size={15} /></button></div>
+          <div><span><Sparkles size={18} /></span><p><strong>Day {day} complete!</strong> Your account progress will sync automatically.</p>{nextDay && <Link to={`/daily/${track}/${nextDay}`}>Go to day {nextDay} <ArrowRight size={14} /></Link>}<button onClick={() => setJustFinished(false)} aria-label="Dismiss"><X size={15} /></button></div>
         </div>
       )}
 
