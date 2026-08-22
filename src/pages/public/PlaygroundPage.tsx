@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Braces, CheckCircle2, Code2, Info, Lightbulb, LockKeyhole, RotateCcw, TerminalSquare, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { usePublicProgress } from '../../public/PublicProgressContext'
 import { PythonWorkbench } from '../../public/runtime/PythonWorkbench'
+import { clearPlaygroundDraft, getPlaygroundDraft, savePlaygroundDraft } from '../../public/runtime/storage'
 import '../../public/runtime.css'
 import '../../public/course-playground.css'
 
-const pythonStarter = `name = "Ada"
+const pythonStarter = `name = "Yaomin"
 message = "Welcome to L2E LAB, " + name + "!"
 
 print(message)`
@@ -32,17 +34,29 @@ function useViewportSize() {
 }
 
 export function PlaygroundPage() {
-  const [pythonCode, setPythonCode] = useState(pythonStarter)
+  const { authSession: draftOwner } = usePublicProgress()
+  const [pythonCode, setPythonCode] = useState(() => getPlaygroundDraft(draftOwner)?.code ?? pythonStarter)
   const [showInfo, setShowInfo] = useState(false)
   const viewport = useViewportSize()
 
   useEffect(() => { document.title = 'Code Playground — L2E LAB' }, [])
+
+  useEffect(() => {
+    setPythonCode(getPlaygroundDraft(draftOwner)?.code ?? pythonStarter)
+  }, [draftOwner])
+
+  useEffect(() => {
+    if (!draftOwner) return
+    const timeout = window.setTimeout(() => savePlaygroundDraft(draftOwner, pythonCode), 450)
+    return () => window.clearTimeout(timeout)
+  }, [draftOwner, pythonCode])
 
   const mobile = viewport.width <= 700
   const availablePanelHeight = Math.max(mobile ? 420 : 500, viewport.height - (mobile ? 108 : 72) - (showInfo ? 48 : 0))
   const pythonHeight = Math.max(370, availablePanelHeight - (mobile ? 78 : 49))
 
   function resetActive() {
+    if (draftOwner) clearPlaygroundDraft(draftOwner)
     setPythonCode(pythonStarter)
   }
 
@@ -86,7 +100,7 @@ export function PlaygroundPage() {
       {showInfo && (
         <aside className="cp-playground-info">
           <Info size={15} />
-          <p><strong>No setup and no account.</strong> Python runs in a private browser worker. React and JavaScript are locked while the Python learning path is active.</p>
+          <p><strong>No local setup required.</strong> Python runs in a private browser worker, while your completed learning progress belongs to your signed-in account. React and JavaScript are locked for now.</p>
           <button type="button" onClick={() => setShowInfo(false)} aria-label="Close information"><X size={14} /></button>
         </aside>
       )}
@@ -103,14 +117,14 @@ export function PlaygroundPage() {
               <strong>Try these steps</strong>
               <ol>
                 <li>Press <b>Run code</b> and read the output.</li>
-                <li>Change <code>Ada</code> to your own name.</li>
+                <li>Change <code>Yaomin</code> to your own name.</li>
                 <li>Run it again and see what changed.</li>
               </ol>
             </section>
 
             <section className="cp-playground-expected">
               <CheckCircle2 size={16} />
-              <div><strong>Expected output</strong><code>Welcome to L2E LAB, Ada!</code></div>
+              <div><strong>Expected output</strong><code>Welcome to L2E LAB, Yaomin!</code></div>
             </section>
 
             <section className="cp-playground-tip">

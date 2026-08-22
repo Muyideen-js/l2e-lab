@@ -1,6 +1,13 @@
 import type { Timestamp } from 'firebase/firestore'
-import { bootstrapAnonymousLearner, getFirebaseClient, type LearnerSession } from './client'
-import { FirebaseClientError, toFirebaseClientError } from './errors'
+import { getFirebaseClient } from './client'
+import {
+  getCurrentLearnerSession,
+  normalizeLearnerUsername,
+  LearnerAuthError,
+  toLearnerAuthError,
+  type LearnerAuthSession,
+  type LearnerAuthUnsubscribe,
+} from './learnerAuth'
 
 export const LEARNERS_COLLECTION = 'learners'
 export const LEARNER_SCHEMA_VERSION = 1 as const
@@ -37,14 +44,20 @@ export interface HydratedLearnerProgress {
 }
 
 export interface LearnerSyncResult extends HydratedLearnerProgress {
-  session: LearnerSession
+  session: LearnerAuthSession
   created: boolean
+}
+
+export interface LearnerProgressSnapshot extends HydratedLearnerProgress {
+  uid: string
+  firstSeenAt: Date | null
+  lastSeenAt: Date | null
 }
 
 function cleanDisplayName(value: string): string {
   const displayName = value.trim().replace(/\s+/g, ' ').slice(0, 40)
   if (!displayName) {
-    throw new FirebaseClientError('invalid-display-name', 'Enter a username before syncing progress.')
+    throw new LearnerAuthError('invalid-username', 'Enter your username before syncing progress.')
   }
   return displayName
 }
@@ -94,14 +107,39 @@ function mergeProgress(
  * returned union for hydration without making the learner wait for the network.
  */
 export async function syncLearnerProgress(input: LearnerSyncInput): Promise<LearnerSyncResult> {
-  const displayName = cleanDisplayName(input.displayName)
-
   try {
-    const [{ auth, db }, session, firestoreSdk] = await Promise.all([
+    const [{ db }, session, firestoreSdk] = await Promise.all([
       getFirebaseClient(),
-      bootstrapAnonymousLearner(),
+      getCurrentLearnerSession(),
       import('firebase/firestore'),
     ])
+    if (!session) {
+      throw new LearnerAuthError(
+        'signed-out',
+        'Sign in with your L2E LAB username and password before syncing progress.',
+      )
+    }
+
+    const requestedDisplayName = cleanDisplayName(input.displayName)
+    let requestedUsername: string
+    try {
+      requestedUsername = normalizeLearnerUsername(requestedDisplayName)
+    } catch {
+      throw new LearnerAuthError(
+        'invalid-username',
+        'The local username does not match this signed-in learner account.',
+      )
+    }
+    if (requestedUsername !== session.username) {
+      throw new LearnerAuthError(
+        'invalid-username',
+        'The local username does not match this signed-in learner account.',
+      )
+    }
+
+    // The authenticated account is authoritative; local storage cannot rename
+    // a learner document to a different identity.
+    const displayName = session.displayName
     const learnerRef = firestoreSdk.doc(db, LEARNERS_COLLECTION, session.uid)
 
     const merged = await firestoreSdk.runTransaction(db, async (transaction) => {
@@ -145,17 +183,6 @@ export async function syncLearnerProgress(input: LearnerSyncInput): Promise<Lear
       return { dailyProgress, finishedProjectIds, created: !snapshot.exists() }
     })
 
-    const authUser = auth.currentUser
-    if (authUser?.uid === session.uid && authUser.displayName !== displayName) {
-      try {
-        const { updateProfile } = await import('firebase/auth')
-        await updateProfile(authUser, { displayName })
-      } catch {
-        // Firestore is the source used for the learner list. A profile update
-        // failure must never block progress that was already saved there.
-      }
-    }
-
     return {
       session,
       displayName,
@@ -164,11 +191,82 @@ export async function syncLearnerProgress(input: LearnerSyncInput): Promise<Lear
       created: merged.created,
     }
   } catch (error) {
-    throw toFirebaseClientError(error)
+    throw toLearnerAuthError(error)
   }
 }
 
 /** Upserts a learner visit without discarding any existing cloud progress. */
 export async function upsertLearner(displayName: string): Promise<LearnerSyncResult> {
   return syncLearnerProgress({ displayName })
+}
+
+function dateFromValue(value: unknown): Date | null {
+  if (value instanceof Date && Number.isFinite(value.getTime())) return value
+  if (value && typeof value === 'object' && 'toDate' in value) {
+    const toDate = (value as { toDate?: unknown }).toDate
+    if (typeof toDate === 'function') {
+      try {
+        const date = toDate.call(value) as unknown
+        if (date instanceof Date && Number.isFinite(date.getTime())) return date
+      } catch {
+        return null
+      }
+    }
+  }
+  return null
+}
+
+function progressSnapshotFromData(
+  uid: string,
+  data: Partial<LearnerDocument>,
+  session: LearnerAuthSession,
+): LearnerProgressSnapshot {
+  const storedDisplayName = typeof data.displayName === 'string'
+    ? data.displayName.trim().slice(0, 40)
+    : ''
+  return {
+    uid,
+    displayName: storedDisplayName || session.displayName,
+    dailyProgress: cleanDailyProgress(data.dailyProgress),
+    finishedProjectIds: cleanProjectIds(data.finishedProjectIds),
+    firstSeenAt: dateFromValue(data.firstSeenAt),
+    lastSeenAt: dateFromValue(data.lastSeenAt),
+  }
+}
+
+/** Subscribes only to the signed-in learner's own Firestore progress record. */
+export async function subscribeToOwnLearnerProgress(
+  listener: (snapshot: LearnerProgressSnapshot | null) => void,
+  onError?: (error: LearnerAuthError) => void,
+): Promise<LearnerAuthUnsubscribe> {
+  try {
+    const [{ db }, session, firestoreSdk] = await Promise.all([
+      getFirebaseClient(),
+      getCurrentLearnerSession(),
+      import('firebase/firestore'),
+    ])
+    if (!session) {
+      throw new LearnerAuthError(
+        'signed-out',
+        'Sign in before loading learner progress.',
+      )
+    }
+
+    const learnerRef = firestoreSdk.doc(db, LEARNERS_COLLECTION, session.uid)
+    return firestoreSdk.onSnapshot(
+      learnerRef,
+      (document) => {
+        listener(document.exists()
+          ? progressSnapshotFromData(
+            document.id,
+            document.data() as Partial<LearnerDocument>,
+            session,
+          )
+          : null)
+      },
+      (error) => onError?.(toLearnerAuthError(error)),
+    )
+  } catch (error) {
+    throw toLearnerAuthError(error)
+  }
 }

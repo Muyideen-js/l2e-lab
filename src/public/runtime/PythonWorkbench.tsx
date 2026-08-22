@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import Editor from '@monaco-editor/react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import Editor, { type BeforeMount, type Monaco, type OnMount } from '@monaco-editor/react'
 import { AlertTriangle, Check, CircleStop, LoaderCircle, Play, RotateCcw, Terminal, TestTube2, X } from 'lucide-react'
 import type { ValidationRule } from '../types'
 import './monacoSetup'
+import { acquirePythonAutocomplete } from './pythonAutocomplete'
 import { usePythonRunner, type PythonCheckResult, type PythonRunResult } from './usePythonRunner'
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
   onCheckComplete?: (passed: boolean, results: PythonCheckResult[]) => void
   height?: number
   filename?: string
+  onEditorMount?: OnMount
 }
 
 function formatReturnValue(value: unknown) {
@@ -27,10 +29,56 @@ export function PythonWorkbench({
   onCheckComplete,
   height = 620,
   filename = 'main.py',
+  onEditorMount,
 }: Props) {
   const runner = usePythonRunner()
   const [result, setResult] = useState<PythonRunResult | null>(null)
   const [mode, setMode] = useState<'output' | 'checks'>('output')
+  const autocompleteLeaseRef = useRef<{ dispose: () => void } | null>(null)
+  const monacoInstanceRef = useRef<Monaco | null>(null)
+
+  useEffect(() => {
+    if (monacoInstanceRef.current && !autocompleteLeaseRef.current) {
+      autocompleteLeaseRef.current = acquirePythonAutocomplete(monacoInstanceRef.current)
+    }
+    return () => {
+      autocompleteLeaseRef.current?.dispose()
+      autocompleteLeaseRef.current = null
+    }
+  }, [])
+
+  const prepareEditor: BeforeMount = useCallback((monaco) => {
+    monaco.editor.defineTheme('l2e-python', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '657B96', fontStyle: 'italic' },
+        { token: 'keyword', foreground: 'C084FC' },
+        { token: 'string', foreground: '86EFAC' },
+        { token: 'number', foreground: 'FBBF24' },
+      ],
+      colors: {
+        'editor.background': '#071426',
+        'editorLineNumber.foreground': '#3f5874',
+        'editorLineNumber.activeForeground': '#9ab2ce',
+        'editorCursor.foreground': '#38bdf8',
+        'editor.selectionBackground': '#164a735c',
+        'editorSuggestWidget.background': '#0b1c31',
+        'editorSuggestWidget.border': '#274562',
+        'editorSuggestWidget.foreground': '#bdd0e4',
+        'editorSuggestWidget.highlightForeground': '#55c8fb',
+        'editorSuggestWidget.selectedBackground': '#153a5b',
+      },
+    })
+  }, [])
+
+  const mountEditor: OnMount = useCallback((_, monaco) => {
+    monaco.editor.setTheme('l2e-python')
+    monacoInstanceRef.current = monaco
+    autocompleteLeaseRef.current?.dispose()
+    autocompleteLeaseRef.current = acquirePythonAutocomplete(monaco)
+    onEditorMount?.(_, monaco)
+  }, [onEditorMount])
 
   async function runCode() {
     setMode('output')
@@ -51,7 +99,12 @@ export function PythonWorkbench({
   return (
     <section className="python-workbench" aria-label="Python coding workspace" style={{ '--runtime-height': `${height}px` } as React.CSSProperties}>
       <div className="python-workbench__topbar">
-        <div className="python-file-label"><span className="python-glyph">Py</span>{filename}<i>Saved locally</i></div>
+        <div className="python-file-label">
+          <span className="python-glyph">Py</span>{filename}<i>Saved locally</i>
+          <span className="python-editor-hint" title="Open Python autocomplete suggestions">
+            <kbd>Ctrl</kbd><b>+</b><kbd>Space</kbd> suggestions
+          </span>
+        </div>
         <div className="python-actions">
           {runner.isBusy ? (
             <button type="button" className="runtime-button runtime-button--stop" onClick={runner.stop}><CircleStop size={15} /> Stop</button>
@@ -71,26 +124,8 @@ export function PythonWorkbench({
             value={code}
             onChange={(value) => onChange(value ?? '')}
             theme="vs-dark"
-            beforeMount={(monaco) => {
-              monaco.editor.defineTheme('l2e-python', {
-                base: 'vs-dark',
-                inherit: true,
-                rules: [
-                  { token: 'comment', foreground: '657B96', fontStyle: 'italic' },
-                  { token: 'keyword', foreground: 'C084FC' },
-                  { token: 'string', foreground: '86EFAC' },
-                  { token: 'number', foreground: 'FBBF24' },
-                ],
-                colors: {
-                  'editor.background': '#071426',
-                  'editorLineNumber.foreground': '#3f5874',
-                  'editorLineNumber.activeForeground': '#9ab2ce',
-                  'editorCursor.foreground': '#38bdf8',
-                  'editor.selectionBackground': '#164a735c',
-                },
-              })
-            }}
-            onMount={(_, monaco) => monaco.editor.setTheme('l2e-python')}
+            beforeMount={prepareEditor}
+            onMount={mountEditor}
             options={{
               minimap: { enabled: false },
               fontFamily: 'Cascadia Code, Consolas, monospace',
@@ -101,7 +136,24 @@ export function PythonWorkbench({
               scrollBeyondLastLine: false,
               automaticLayout: true,
               tabSize: 4,
+              insertSpaces: true,
+              detectIndentation: false,
               wordWrap: 'on',
+              quickSuggestions: { other: true, comments: false, strings: false },
+              quickSuggestionsDelay: 60,
+              suggestOnTriggerCharacters: true,
+              acceptSuggestionOnCommitCharacter: true,
+              acceptSuggestionOnEnter: 'on',
+              tabCompletion: 'on',
+              snippetSuggestions: 'top',
+              suggestSelection: 'first',
+              wordBasedSuggestions: 'off',
+              parameterHints: { enabled: true, cycle: true },
+              autoClosingBrackets: 'always',
+              autoClosingQuotes: 'always',
+              autoSurround: 'languageDefined',
+              bracketPairColorization: { enabled: true },
+              guides: { bracketPairs: true, indentation: true },
             }}
           />
         </div>

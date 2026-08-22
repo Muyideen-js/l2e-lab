@@ -155,6 +155,149 @@
   box-shadow: none;
 }
 
+.pl-shell .pl-signin-button,
+.pl-shell .pl-account-chip,
+.pl-shell .pl-signout-button,
+.pl-shell .pl-mobile-auth {
+  border-radius: 0;
+}
+
+.pl-shell .pl-learning-hero__account {
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+}
+
+.pl-shell .pl-learning-signout {
+  min-height: 44px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #b9cce1;
+  border: 1px solid rgba(109, 178, 238, .22);
+  background: rgba(5, 24, 51, .56);
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.pl-shell .pl-learning-signout:hover {
+  color: #fff;
+  border-color: rgba(255, 157, 166, .48);
+  background: rgba(120, 24, 42, .35);
+}
+
+.pl-shell .pl-signin-button {
+  min-height: 36px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #164e91;
+  border: 1px solid #b8cbe0;
+  background: #f8fbff;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.pl-shell .pl-signin-button:hover {
+  color: #084da7;
+  border-color: #7fa9d8;
+  background: #edf6ff;
+}
+
+.pl-shell .pl-account-chip {
+  min-height: 36px;
+  max-width: 205px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  color: #173d68;
+  border: 1px solid #c2d2e2;
+  background: #f8fbff;
+  font: 750 9px/1 'Cascadia Code', Consolas, monospace;
+  white-space: nowrap;
+}
+
+.pl-account-chip__username {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pl-account-chip__status {
+  flex: 0 0 auto;
+  padding-left: 7px;
+  color: #60758b;
+  border-left: 1px solid #d1dce7;
+  font: 850 7px/1 'DM Sans', sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.pl-account-chip__dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border: 1px solid currentColor;
+  background: #8394a7;
+}
+
+.pl-account-chip__dot.is-synced { color: #07835f; background: #14b884; }
+.pl-account-chip__dot.is-syncing { color: #0b62cf; background: #2b86f5; animation: pulse 1.2s ease-in-out infinite; }
+.pl-account-chip__dot.is-offline,
+.pl-account-chip__dot.is-error { color: #b96114; background: #f0a13e; }
+
+.pl-shell .pl-signout-button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: #65798e;
+  border: 1px solid #c7d5e3;
+  background: #fff;
+}
+
+.pl-shell .pl-signout-button:hover {
+  color: #b22d3a;
+  border-color: #e3aeb3;
+  background: #fff4f5;
+}
+
+.pl-shell .pl-mobile-auth {
+  min-height: 44px;
+  padding: 0 13px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #fff;
+  border: 1px solid #0c2a56;
+  background: #0c2a56;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.pl-shell .pl-mobile-auth > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl-shell .pl-mobile-auth > small {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: #bcd7f5;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
 .pl-shell .pl-button--primary {
   background: #1266df;
 }
@@ -896,6 +1039,17 @@
 }
 
 @media (max-width: 620px) {
+  .pl-shell .pl-account-chip,
+  .pl-shell .pl-signout-button,
+  .pl-shell .pl-signin-button {
+    display: none;
+  }
+
+  .pl-shell .pl-learning-hero__account {
+    width: 100%;
+    flex-direction: column;
+  }
+
   .pl-shell {
     overflow-x: hidden;
   }

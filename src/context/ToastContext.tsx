@@ -65,13 +65,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const notify = useCallback(
     (message: string, kind: ToastKind = 'success', durationMs = DEFAULT_DURATION) => {
       const id = crypto.randomUUID()
+      const timeout = window.setTimeout(() => dismiss(id), durationMs)
       const toast: Toast = {
         id,
         kind,
         message,
-        timeout: window.setTimeout(() => dismiss(id), durationMs),
+        timeout,
       }
-      setToasts((current) => [...current, toast])
+      setToasts((current) => {
+        if (current.some((item) => item.kind === kind && item.message === message)) {
+          clearTimeout(timeout)
+          return current
+        }
+        return [...current, toast]
+      })
       return id
     },
     [dismiss],
