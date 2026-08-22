@@ -453,6 +453,8 @@
 /* Compact daily challenge toolbar */
 .daily-workspace-page { padding-bottom: 0; }
 
+.daily-mobile-tabs { display: none; }
+
 .daily-workspace-top__inner {
   width: 100%;
   max-width: none;
@@ -642,24 +644,83 @@
 
 @media (max-width: 820px) {
   .ide-toolbar { min-height: 54px; flex-basis: 54px; }
-  .ide-workspace-grid {
+  .daily-workspace-page .ide-workspace-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(190px, 34dvh) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
-  .ide-task-panel { border-right: 0; border-bottom: 1px solid #23364b; }
-  .ide-code-panel .python-workbench__body {
+
+  .daily-mobile-tabs {
+    min-height: 48px;
+    flex: 0 0 48px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    position: relative;
+    z-index: 19;
+    border-bottom: 1px solid #23364b;
+    background: #0b1726;
+  }
+
+  .daily-mobile-tabs button {
+    min-width: 0;
+    padding: 0 8px;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: #71879e;
+    border: 0;
+    border-right: 1px solid #1e3145;
+    background: transparent;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  .daily-mobile-tabs button:last-child { border-right: 0; }
+  .daily-mobile-tabs button.is-active { color: #d8e8f7; background: #12253a; }
+  .daily-mobile-tabs button.is-active::after {
+    height: 2px;
+    position: absolute;
+    right: 8px;
+    bottom: 0;
+    left: 8px;
+    content: '';
+    background: #38bdf8;
+  }
+  .daily-mobile-tabs button > span {
+    min-width: 25px;
+    padding: 2px 4px;
+    color: #68d9b3;
+    border: 1px solid #285645;
+    background: #102f28;
+    font-size: 7px;
+  }
+
+  .daily-workspace-page .ide-task-panel,
+  .daily-workspace-page .ide-code-panel { display: none; }
+  .daily-workspace-page .is-mobile-active { display: block; }
+  .daily-workspace-page .ide-task-panel {
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .daily-workspace-page .ide-code-panel .python-workbench__body {
     height: 100%;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(220px, 1.2fr) minmax(150px, .8fr);
+    grid-template-rows: minmax(0, 1fr);
   }
-  .ide-code-panel .python-editor-pane {
+
+  .daily-workspace-page .ide-code-panel .python-editor-pane,
+  .daily-workspace-page .ide-code-panel .python-output-pane {
     min-height: 0;
-    height: auto;
+    height: 100%;
     border-right: 0;
-    border-bottom: 1px solid #18324f;
+    border-bottom: 0;
   }
-  .ide-code-panel .python-output-pane { min-height: 0; height: auto; }
+
+  .daily-workspace-page .python-workbench--mobile-code .python-output-pane,
+  .daily-workspace-page .python-workbench--mobile-output .python-editor-pane { display: none; }
   .daily-workspace-top__inner {
     min-height: 54px;
     padding-block: 0;
@@ -675,7 +736,6 @@
 }
 
 @media (max-width: 560px) {
-  .ide-workspace-grid { grid-template-rows: minmax(175px, 32dvh) minmax(0, 1fr); }
   .daily-brief,
   .project-brief > section { padding: 16px; }
   .daily-brief h1,
@@ -690,5 +750,14 @@
   .project-build-status .pl-button svg { width: 15px; height: 15px; }
   .project-build-status { gap: 5px; }
   .python-file-label i { display: none; }
-  .ide-code-panel .python-workbench__topbar { min-height: 78px; padding: 9px; }
+  .daily-workspace-page .ide-code-panel .python-workbench__topbar {
+    min-height: 58px;
+    padding: 7px 9px;
+  }
+  .daily-workspace-page .python-file-label { min-width: 0; }
+  .daily-workspace-page .python-actions { width: auto; margin-left: auto; }
+  .daily-workspace-page .python-actions .runtime-button {
+    min-height: 38px;
+    padding-inline: 10px;
+  }
 }

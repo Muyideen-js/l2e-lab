@@ -14,6 +14,8 @@ type Props = {
   height?: number
   filename?: string
   onEditorMount?: OnMount
+  mobileView?: 'code' | 'output'
+  onMobileViewChange?: (view: 'code' | 'output') => void
 }
 
 function formatReturnValue(value: unknown) {
@@ -30,6 +32,8 @@ export function PythonWorkbench({
   height = 620,
   filename = 'main.py',
   onEditorMount,
+  mobileView,
+  onMobileViewChange,
 }: Props) {
   const runner = usePythonRunner()
   const [result, setResult] = useState<PythonRunResult | null>(null)
@@ -82,12 +86,14 @@ export function PythonWorkbench({
 
   async function runCode() {
     setMode('output')
+    onMobileViewChange?.('output')
     const next = await runner.run(code)
     setResult(next)
   }
 
   async function checkCode() {
     setMode('checks')
+    onMobileViewChange?.('output')
     const next = await runner.check(code, validation)
     setResult(next)
     const passed = next.ok && next.checks.length > 0 && next.checks.every((check) => check.passed)
@@ -97,7 +103,7 @@ export function PythonWorkbench({
   const terminalOutput = result?.stdout || result?.stderr || result?.error || formatReturnValue(result?.returnValue) || 'Run your code to see its output here.'
 
   return (
-    <section className="python-workbench" aria-label="Python coding workspace" style={{ '--runtime-height': `${height}px` } as React.CSSProperties}>
+    <section className={`python-workbench${mobileView ? ` python-workbench--mobile-${mobileView}` : ''}`} aria-label="Python coding workspace" style={{ '--runtime-height': `${height}px` } as React.CSSProperties}>
       <div className="python-workbench__topbar">
         <div className="python-file-label">
           <span className="python-glyph">Py</span>{filename}<i>Saved locally</i>

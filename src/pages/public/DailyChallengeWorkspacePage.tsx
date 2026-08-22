@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, Clock3, Flame, Lightbulb, ListChecks, RotateCcw, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, Clock3, Code2, FileText, Flame, Lightbulb, ListChecks, RotateCcw, Sparkles, Terminal, X } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { getDailyChallenge, learningTrackMeta } from '../../public/data'
 import { TrackIcon, trackClass } from '../../public/PublicCards'
@@ -11,6 +11,7 @@ import type { PythonCheckResult } from '../../public/runtime/usePythonRunner'
 import '../../public/runtime.css'
 
 type ChallengeResult = { id: string; label: string; passed: boolean; message?: string }
+type MobileWorkspaceView = 'task' | 'code' | 'output'
 
 function cloneFiles(files: StarterFile[]) {
   return files.map((file) => ({ ...file }))
@@ -27,6 +28,7 @@ export function DailyChallengeWorkspacePage() {
   const [results, setResults] = useState<ChallengeResult[]>([])
   const [hintsOpen, setHintsOpen] = useState(false)
   const [justFinished, setJustFinished] = useState(false)
+  const [mobileView, setMobileView] = useState<MobileWorkspaceView>('task')
 
   useEffect(() => {
     if (!challenge) return
@@ -34,6 +36,7 @@ export function DailyChallengeWorkspacePage() {
     setFiles(cloneFiles(getDailyDraft(draftOwner, challenge.track, challenge.day)?.files ?? challenge.starterFiles))
     setResults([])
     setJustFinished(false)
+    setMobileView('task')
   }, [challenge, draftOwner])
 
   useEffect(() => {
@@ -94,6 +97,34 @@ export function DailyChallengeWorkspacePage() {
         </div>
       </header>
 
+      <nav className="daily-mobile-tabs" aria-label="Challenge workspace views">
+        <button
+          type="button"
+          className={mobileView === 'task' ? 'is-active' : ''}
+          aria-pressed={mobileView === 'task'}
+          onClick={() => setMobileView('task')}
+        >
+          <FileText size={15} /> Task
+        </button>
+        <button
+          type="button"
+          className={mobileView === 'code' ? 'is-active' : ''}
+          aria-pressed={mobileView === 'code'}
+          onClick={() => setMobileView('code')}
+        >
+          <Code2 size={15} /> Code
+        </button>
+        <button
+          type="button"
+          className={mobileView === 'output' ? 'is-active' : ''}
+          aria-pressed={mobileView === 'output'}
+          onClick={() => setMobileView('output')}
+        >
+          <Terminal size={15} /> Output
+          {results.length > 0 && <span>{results.filter((item) => item.passed).length}/{results.length}</span>}
+        </button>
+      </nav>
+
       {justFinished && (
         <div className="daily-celebration">
           <div><span><Sparkles size={18} /></span><p><strong>Day {day} complete!</strong> Your account progress will sync automatically.</p>{nextDay && <Link to={`/daily/${track}/${nextDay}`}>Go to day {nextDay} <ArrowRight size={14} /></Link>}<button onClick={() => setJustFinished(false)} aria-label="Dismiss"><X size={15} /></button></div>
@@ -101,7 +132,7 @@ export function DailyChallengeWorkspacePage() {
       )}
 
       <div className="ide-workspace-grid daily-workspace-grid">
-        <aside className="ide-task-panel daily-brief" aria-label="Challenge instructions">
+        <aside className={`ide-task-panel daily-brief${mobileView === 'task' ? ' is-mobile-active' : ''}`} aria-label="Challenge instructions">
           <div className="daily-brief__day"><span className={trackClass[track]}><TrackIcon track={track} size={18} /></span><div><small>{learningTrackMeta[track].label} · Day {day}</small><strong>{challenge.concept}</strong></div><Flame size={18} /></div>
           <span className="runtime-kicker"><Sparkles size={13} /> Today&apos;s build</span>
           <h1>{challenge.title}</h1>
@@ -144,8 +175,17 @@ export function DailyChallengeWorkspacePage() {
           </section>
         </aside>
 
-        <main className="ide-code-panel daily-runtime" aria-label="Python editor and results">
-          <PythonWorkbench code={mainPythonFile.code} onChange={updatePython} validation={challenge.validation} onCheckComplete={handlePythonChecks} filename="challenge.py" height={690} />
+        <main className={`ide-code-panel daily-runtime${mobileView !== 'task' ? ' is-mobile-active' : ''}`} aria-label="Python editor and results">
+          <PythonWorkbench
+            code={mainPythonFile.code}
+            onChange={updatePython}
+            validation={challenge.validation}
+            onCheckComplete={handlePythonChecks}
+            filename="challenge.py"
+            height={690}
+            mobileView={mobileView === 'output' ? 'output' : 'code'}
+            onMobileViewChange={setMobileView}
+          />
         </main>
       </div>
     </div>
