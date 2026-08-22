@@ -11,14 +11,21 @@
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.20.0",
+    "@liveblocks/client": "^3.24.1",
+    "@liveblocks/node": "^3.24.1",
+    "@liveblocks/yjs": "^3.24.1",
     "@monaco-editor/react": "^4.7.0",
     "firebase": "^12.17.1",
     "lucide-react": "^0.468.0",
+    "monaco-editor": "^0.56.0",
     "pyodide": "^314.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.1.1",
-    "recharts": "^2.15.0"
+    "recharts": "^2.15.0",
+    "y-monaco": "^0.1.6",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.32"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
