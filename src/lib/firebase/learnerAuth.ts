@@ -331,6 +331,21 @@ export async function getCurrentLearnerSession(
   }
 }
 
+/** Returns a fresh Firebase ID token for trusted same-origin API requests. */
+export async function getLearnerIdToken(): Promise<string> {
+  try {
+    const { auth } = await getFirebaseClient()
+    await auth.authStateReady()
+    const session = await authenticatedSessionFromUser(auth.currentUser, false)
+    if (!auth.currentUser || !session) {
+      throw new LearnerAuthError('signed-out', 'Sign in to L2E LAB to collaborate.')
+    }
+    return await auth.currentUser.getIdToken()
+  } catch (error) {
+    throw toLearnerAuthError(error)
+  }
+}
+
 export async function observeLearnerAuth(
   listener: (state: LearnerAuthState) => void,
 ): Promise<LearnerAuthUnsubscribe> {

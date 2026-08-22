@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, Clock3, Flame, Lightbulb, ListChecks, RotateCcw, Sparkles, X } from 'lucide-react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import type { editor as MonacoEditor } from 'monaco-editor'
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, Clock3, Code2, FileText, Flame, Lightbulb, ListChecks, RotateCcw, Sparkles, Terminal, X } from 'lucide-react'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { getDailyChallenge, learningTrackMeta } from '../../public/data'
 import { TrackIcon, trackClass } from '../../public/PublicCards'
 import { usePublicProgress } from '../../public/PublicProgressContext'
@@ -8,9 +9,12 @@ import { PythonWorkbench } from '../../public/runtime/PythonWorkbench'
 import { clearDailyDraft, getDailyDraft, saveDailyDraft } from '../../public/runtime/storage'
 import type { StarterFile } from '../../public/types'
 import type { PythonCheckResult } from '../../public/runtime/usePythonRunner'
+import { PairProgrammingControls } from '../../public/collaboration/PairProgrammingControls'
+import { usePairProgramming } from '../../public/collaboration/usePairProgramming'
 import '../../public/runtime.css'
 
 type ChallengeResult = { id: string; label: string; passed: boolean; message?: string }
+type MobileWorkspaceView = 'task' | 'code' | 'output'
 
 function cloneFiles(files: StarterFile[]) {
   return files.map((file) => ({ ...file }))
@@ -18,6 +22,7 @@ function cloneFiles(files: StarterFile[]) {
 
 export function DailyChallengeWorkspacePage() {
   const params = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const track = params.track === 'python' ? 'python' : null
   const day = Number(params.day)
   const challenge = useMemo(() => track && Number.isInteger(day) ? getDailyChallenge(track, day) : undefined, [day, track])
@@ -27,6 +32,16 @@ export function DailyChallengeWorkspacePage() {
   const [results, setResults] = useState<ChallengeResult[]>([])
   const [hintsOpen, setHintsOpen] = useState(false)
   const [justFinished, setJustFinished] = useState(false)
+  const [mobileView, setMobileView] = useState<MobileWorkspaceView>('task')
+  const [editor, setEditor] = useState<MonacoEditor.IStandaloneCodeEditor | null>(null)
+  const [inviteCopied, setInviteCopied] = useState(false)
+  const roomId = searchParams.get('pair')
+  const pair = usePairProgramming({
+    roomId,
+    editor,
+    initialCode: files.find((file) => file.language === 'python')?.code ?? '',
+    session: progress.authSession,
+  })
 
   useEffect(() => {
     if (!challenge) return
@@ -34,6 +49,7 @@ export function DailyChallengeWorkspacePage() {
     setFiles(cloneFiles(getDailyDraft(draftOwner, challenge.track, challenge.day)?.files ?? challenge.starterFiles))
     setResults([])
     setJustFinished(false)
+    setMobileView('task')
   }, [challenge, draftOwner])
 
   useEffect(() => {
@@ -76,6 +92,32 @@ export function DailyChallengeWorkspacePage() {
     setResults([])
   }
 
+  function startPairProgramming() {
+    const random = Array.from(crypto.getRandomValues(new Uint8Array(5)), (value) => value.toString(16).padStart(2, '0')).join('')
+    const next = new URLSearchParams(searchParams)
+    next.set('pair', `l2e-pair-python-${day}-${Date.now().toString(36)}-${random}`)
+    setSearchParams(next)
+    setInviteCopied(false)
+  }
+
+  async function copyPairInvite() {
+    if (!roomId) return
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setInviteCopied(true)
+      window.setTimeout(() => setInviteCopied(false), 1800)
+    } catch {
+      window.prompt('Copy this private pair-programming link:', window.location.href)
+    }
+  }
+
+  function leavePairProgramming() {
+    const next = new URLSearchParams(searchParams)
+    next.delete('pair')
+    setSearchParams(next, { replace: true })
+    setInviteCopied(false)
+  }
+
   return (
     <div className="runtime-page ide-page daily-workspace-page">
       <header className="ide-toolbar daily-workspace-top">
@@ -88,11 +130,49 @@ export function DailyChallengeWorkspacePage() {
           </div>
           <div className="daily-workspace-actions">
             <span className="draft-saved"><Check size={13} /> Saved locally</span>
+            <PairProgrammingControls
+              roomId={roomId}
+              state={pair.state}
+              learners={pair.learners}
+              error={pair.error}
+              copied={inviteCopied}
+              onStart={startPairProgramming}
+              onCopy={copyPairInvite}
+              onLeave={leavePairProgramming}
+            />
             <button type="button" className="runtime-reset" onClick={resetChallenge}><RotateCcw size={14} /> Reset</button>
             {finished && <span className="finished-chip"><CheckCircle2 size={15} /> Completed</span>}
           </div>
         </div>
       </header>
+
+      <nav className="daily-mobile-tabs" aria-label="Challenge workspace views">
+        <button
+          type="button"
+          className={mobileView === 'task' ? 'is-active' : ''}
+          aria-pressed={mobileView === 'task'}
+          onClick={() => setMobileView('task')}
+        >
+          <FileText size={15} /> Task
+        </button>
+        <button
+          type="button"
+          className={mobileView === 'code' ? 'is-active' : ''}
+          aria-pressed={mobileView === 'code'}
+          onClick={() => setMobileView('code')}
+        >
+          <Code2 size={15} /> Code
+        </button>
+        <button
+          type="button"
+          className={mobileView === 'output' ? 'is-active' : ''}
+          aria-pressed={mobileView === 'output'}
+          onClick={() => setMobileView('output')}
+        >
+          <Terminal size={15} /> Output
+          {results.length > 0 && <span>{results.filter((item) => item.passed).length}/{results.length}</span>}
+        </button>
+      </nav>
 
       {justFinished && (
         <div className="daily-celebration">
@@ -101,7 +181,7 @@ export function DailyChallengeWorkspacePage() {
       )}
 
       <div className="ide-workspace-grid daily-workspace-grid">
-        <aside className="ide-task-panel daily-brief" aria-label="Challenge instructions">
+        <aside className={`ide-task-panel daily-brief${mobileView === 'task' ? ' is-mobile-active' : ''}`} aria-label="Challenge instructions">
           <div className="daily-brief__day"><span className={trackClass[track]}><TrackIcon track={track} size={18} /></span><div><small>{learningTrackMeta[track].label} · Day {day}</small><strong>{challenge.concept}</strong></div><Flame size={18} /></div>
           <span className="runtime-kicker"><Sparkles size={13} /> Today&apos;s build</span>
           <h1>{challenge.title}</h1>
@@ -144,8 +224,18 @@ export function DailyChallengeWorkspacePage() {
           </section>
         </aside>
 
-        <main className="ide-code-panel daily-runtime" aria-label="Python editor and results">
-          <PythonWorkbench code={mainPythonFile.code} onChange={updatePython} validation={challenge.validation} onCheckComplete={handlePythonChecks} filename="challenge.py" height={690} />
+        <main className={`ide-code-panel daily-runtime${mobileView !== 'task' ? ' is-mobile-active' : ''}`} aria-label="Python editor and results">
+          <PythonWorkbench
+            code={mainPythonFile.code}
+            onChange={updatePython}
+            validation={challenge.validation}
+            onCheckComplete={handlePythonChecks}
+            filename="challenge.py"
+            height={690}
+            mobileView={mobileView === 'output' ? 'output' : 'code'}
+            onMobileViewChange={setMobileView}
+            onEditorMount={(mountedEditor) => setEditor(mountedEditor)}
+          />
         </main>
       </div>
     </div>

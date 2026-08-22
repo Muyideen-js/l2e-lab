@@ -1,0 +1,73 @@
+.pair-start,
+.pair-copy,
+.pair-leave {
+  min-height: 32px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #b9d6ec;
+  border: 1px solid #31516d;
+  border-radius: 0;
+  background: #132b40;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.pair-start:hover,
+.pair-copy:hover { color: #fff; border-color: #48a9d6; background: #183a55; }
+.pair-controls { position: relative; display: flex; align-items: center; gap: 7px; }
+.pair-people { display: flex; padding-left: 6px; }
+.pair-avatar {
+  width: 27px;
+  height: 27px;
+  margin-left: -6px;
+  display: grid;
+  place-items: center;
+  color: #06111e;
+  border: 2px solid #0d1a29;
+  border-radius: 50%;
+  background: var(--pair-color);
+  font-size: 9px;
+  font-weight: 900;
+}
+.pair-avatar--empty { color: #6f879f; border: 1px dashed #446078; background: #132235; }
+.pair-status { display: inline-flex; align-items: center; gap: 6px; color: #91a9bf; font-size: 9px; font-weight: 750; white-space: nowrap; }
+.pair-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, .12); }
+.pair-controls--error .pair-status,
+.pair-controls--full .pair-status { color: #fda4af; }
+.pair-copy { min-height: 29px; padding-inline: 8px; }
+.pair-leave { width: 29px; min-height: 29px; padding: 0; color: #7890a7; background: transparent; }
+.pair-leave:hover { color: #fda4af; border-color: #7d3b48; }
+.pair-error {
+  width: 270px;
+  padding: 9px 10px;
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 9px);
+  right: 0;
+  display: flex;
+  gap: 7px;
+  color: #fecdd3;
+  border: 1px solid #753847;
+  background: #321824;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .35);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+@media (max-width: 820px) {
+  .pair-status { display: none; }
+  .pair-copy { width: 31px; padding: 0; font-size: 0; }
+  .pair-copy svg { width: 13px; height: 13px; }
+  .pair-avatar { width: 24px; height: 24px; }
+}
+
+@media (max-width: 560px) {
+  .pair-start { width: 34px; padding: 0; font-size: 0; }
+  .pair-start svg { width: 15px; height: 15px; }
+  .pair-controls { gap: 4px; }
+  .pair-people { display: none; }
+  .pair-error { width: min(260px, calc(100vw - 20px)); right: -38px; }
+}

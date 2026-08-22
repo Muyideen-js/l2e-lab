@@ -6,6 +6,7 @@ export {
 export {
   LearnerAuthError,
   getCurrentLearnerSession,
+  getLearnerIdToken,
   normalizeLearnerUsername,
   observeLearnerAuth,
   signInLearner,
