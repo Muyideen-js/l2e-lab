@@ -59,6 +59,16 @@ function pyodideAssets(): Plugin {
 }
 
 export default defineConfig({
+  resolve: {
+    // y-monaco still imports Monaco's pre-0.56 ESM subpath. The file remains
+    // part of Monaco, but its newer package exports no longer expose that path.
+    alias: {
+      'monaco-editor/esm/vs/editor/editor.api.js': resolve(
+        fileURLToPath(new URL('.', import.meta.url)),
+        'node_modules/monaco-editor/esm/vs/editor/editor.api.js',
+      ),
+    },
+  },
   plugins: [
     react(),
     pyodideAssets(),
