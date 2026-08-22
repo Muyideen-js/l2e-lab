@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Braces, CheckCircle2, Code2, Info, Lightbulb, LockKeyhole, RotateCcw, TerminalSquare, X } from 'lucide-react'
+import { ArrowLeft, Braces, CheckCircle2, Code2, FileText, Info, Lightbulb, LockKeyhole, RotateCcw, Terminal, TerminalSquare, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { usePublicProgress } from '../../public/PublicProgressContext'
 import { PythonWorkbench } from '../../public/runtime/PythonWorkbench'
@@ -17,6 +17,8 @@ const trackTabs = [
   { id: 'react', label: 'React', detail: 'Locked', icon: Code2, locked: true },
   { id: 'javascript', label: 'JavaScript', detail: 'Locked', icon: Braces, locked: true },
 ]
+
+type MobilePlaygroundView = 'task' | 'code' | 'output'
 
 function useViewportSize() {
   const [size, setSize] = useState(() => ({
@@ -37,6 +39,7 @@ export function PlaygroundPage() {
   const { authSession: draftOwner } = usePublicProgress()
   const [pythonCode, setPythonCode] = useState(() => getPlaygroundDraft(draftOwner)?.code ?? pythonStarter)
   const [showInfo, setShowInfo] = useState(false)
+  const [mobileView, setMobileView] = useState<MobilePlaygroundView>('task')
   const viewport = useViewportSize()
 
   useEffect(() => { document.title = 'Code Playground — L2E LAB' }, [])
@@ -105,8 +108,20 @@ export function PlaygroundPage() {
         </aside>
       )}
 
+      <nav className="cp-mobile-tabs" aria-label="Playground views">
+        <button type="button" className={mobileView === 'task' ? 'is-active' : ''} aria-pressed={mobileView === 'task'} onClick={() => setMobileView('task')}>
+          <FileText size={15} /> Task
+        </button>
+        <button type="button" className={mobileView === 'code' ? 'is-active' : ''} aria-pressed={mobileView === 'code'} onClick={() => setMobileView('code')}>
+          <Code2 size={15} /> Code
+        </button>
+        <button type="button" className={mobileView === 'output' ? 'is-active' : ''} aria-pressed={mobileView === 'output'} onClick={() => setMobileView('output')}>
+          <Terminal size={15} /> Output
+        </button>
+      </nav>
+
       <main className="cp-playground-workspace">
-        <aside className="cp-playground-brief" aria-label="Playground task">
+        <aside className={`cp-playground-brief${mobileView === 'task' ? ' is-mobile-active' : ''}`} aria-label="Playground task">
           <header><span>START HERE</span><strong>Your first Python task</strong></header>
           <div className="cp-playground-brief__body">
             <span className="cp-playground-brief__eyebrow"><TerminalSquare size={13} /> Beginner practice</span>
@@ -134,8 +149,15 @@ export function PlaygroundPage() {
           </div>
           <footer><TerminalSquare size={14} /><span>playground.py</span><small>Python 3</small></footer>
         </aside>
-        <div className="cp-playground-editor">
-          <PythonWorkbench code={pythonCode} onChange={setPythonCode} filename="playground.py" height={pythonHeight} />
+        <div className={`cp-playground-editor${mobileView !== 'task' ? ' is-mobile-active' : ''}`}>
+          <PythonWorkbench
+            code={pythonCode}
+            onChange={setPythonCode}
+            filename="playground.py"
+            height={pythonHeight}
+            mobileView={mobileView === 'output' ? 'output' : 'code'}
+            onMobileViewChange={setMobileView}
+          />
         </div>
       </main>
     </div>
